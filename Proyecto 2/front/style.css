@@ -1,0 +1,27 @@
+   body {
+            background-color: black;
+        }
+        .header {
+            background: #495057;
+            color: white;
+            padding: 2rem 0;
+        }
+        .content-area {
+            background: #2980b9;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .results-area {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+p:focus {
+  border-radius: 40px;
+  outline: none; /* Elimina el borde por defecto al enfocar */
+  border: 1px solid #2980b9; /* Agrega un borde azul */
+}

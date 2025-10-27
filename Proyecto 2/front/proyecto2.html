@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Traductor Java → Python</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    header { background: #333; color: white; padding: 10px; }
+    nav { background: #444; color: white; padding: 10px; display: flex; gap: 20px; }
+    nav button { background: #666; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+    nav button:hover { background: #888; }
+    main { display: flex; height: calc(100vh - 100px); }
+    textarea { width: 50%; height: 100%; padding: 10px; border: none; resize: none; font-family: monospace; font-size: 14px; }
+    #editor { background: #f0f0f0; }
+    #output { background: #e0ffe0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Traductor Java → Python</h1>
+  </header>
+
+  <nav>
+    <div>
+      <strong>ARCHIVO:</strong>
+      <button onclick="nuevo()">Nuevo</button>
+      <input type="file" accept=".java" onchange="abrirArchivo(event)">
+      <button onclick="guardarJava()">Guardar</button>
+      <button onclick="guardarPython()">Guardar Python como</button>
+      <button onclick="salir()">Salir</button>
+    </div>
+    <div>
+      <strong>TRADUCIR:</strong>
+      <button onclick="traducir()">Generar Traducción</button>
+      <button onclick="verTokens()">Ver Tokens</button>
+    </div>
+  </nav>
+
+  <main>
+    <textarea id="editor" placeholder="Escribe o carga código Java aquí..."></textarea>
+    <textarea id="output" placeholder="Aquí se mostrará el código Python traducido..." readonly></textarea>
+  </main>
+
+  <script>
+    function nuevo() {
+      document.getElementById('editor').value = '';
+      document.getElementById('output').value = '';
+    }
+
+    function abrirArchivo(event) {
+      const file = event.target.files[0];
+      if (file && file.name.endsWith('.java')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('editor').value = e.target.result;
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Por favor selecciona un archivo .java válido.');
+      }
+    }
+
+    function guardarJava() {
+      const contenido = document.getElementById('editor').value;
+      descargarArchivo(contenido, 'codigo.java');
+    }
+
+    function guardarPython() {
+      const contenido = document.getElementById('output').value;
+      if (contenido.trim()) {
+        descargarArchivo(contenido, 'codigo.py');
+      } else {
+        alert('No hay traducción disponible para guardar.');
+      }
+    }
+
+    function descargarArchivo(contenido, nombre) {
+      const blob = new Blob([contenido], { type: 'text/plain' });
+      const enlace = document.createElement('a');
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = nombre;
+      enlace.click();
+    }
+
+    function salir() {
+      if (confirm('¿Deseas cerrar la aplicación?')) {
+        window.close();
+      }
+    }
+
+    function traducir() {
+      const codigoJava = document.getElementById('editor').value;
+      // Aquí deberías integrar tu pipeline léxico → sintáctico → traducción
+      // Simulación de traducción:
+      const codigoPython = `# Traducción simulada\nprint("Hola desde Python")`;
+      document.getElementById('output').value = codigoPython;
+    }
+
+    function verTokens() {
+      // Simulación de reporte HTML de tokens
+      const ventana = window.open('', '_blank');
+      ventana.document.write('<h2>Reporte de Tokens</h2><ul><li>public → palabra clave</li><li>class → palabra clave</li></ul>');
+    }
+  </script>
+  <script src="traductor.js"></script>
+</body>
+</html>

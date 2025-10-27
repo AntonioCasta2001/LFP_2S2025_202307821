@@ -58,11 +58,11 @@ export class AnalizadorLexico {
         return code >= 48 && code <= 57;
     }
     operadores(char) {
-        const ops = ["+", "-", "*", "/", "=","==", "!=", "<", ">", "<=", ">=", "++", "--"];
+        const ops = ["+", "-", "*", "/", "=", "<", ">"];
         return ops.includes(char);
     }
     esOperadorCompuesto(char) {
-        const ops2 = ["==", "!=", "<", ">", "<=", ">=", "++", "--"];
+        const ops2 = ["==", "!=", "<=", ">=", "++", "--"];
         return ops2.includes(char);
     }
     esSimbolo(char) {
@@ -127,10 +127,10 @@ export class AnalizadorLexico {
                 } else if (char === "."){
                     columna += 1;
                     this.listaTokens.push(new Token("PUNTO", char, linea, columna));
-                } else if (this.operadores(char)) {
-                    let siguiente = entrada[index + 1];
-                    if (this.esOperadorCompuesto(char, siguiente)) {
-                        this.listaTokens.push(new Token("OPC", char + siguiente, linea, columna));
+                } else if (this.esOperadorCompuesto(char) || this.operadores(char)) {
+                    const dosCaracteres = entrada.slice(index, index + 2);
+                    if (this.esOperadorCompuesto(dosCaracteres)) {
+                        this.listaTokens.push(new Token("OPC", dosCaracteres, linea, columna));
                         index++; columna += 2;
                     } else {
                         this.listaTokens.push(new Token("OP", char, linea, columna));
@@ -281,9 +281,10 @@ let entrada = ` public class Clase{
         char z = "David";
         double c = 46.2;
         double y = 54.4;
-        if(n>=2){
+        if(n >2){
             x = 46;
         }
+        @
         while(n==1){
         
         }
@@ -395,7 +396,9 @@ export class Parser {
     condicion(){
         const token = this.tokenActual();
         if(this.coincidir("IDENTIFICADOR")){
-            if(this.coincidir("OPC")){
+            //if(this.coincidir("OPC") || this.coincidir("OP")){
+            if(["==", "!=", "<", ">", "<=", ">="].includes(this.tokenActual()?.lexema)){
+                this.avanzar();
                 if(this.coincidir("ENTERO") || this.coincidir("CADENA") || this.coincidir("BOOLEAN")){
                     this.avanzar();
                 }
@@ -487,7 +490,14 @@ class Traductor {
         this.codigoPython = "";
         this.indentacion = 0;
     }
-
+    inicio(){
+        this.avanzar();
+        const nombre = this.tokenActual()?.lexema;
+        this.avanzar();
+        if (this.tokenActual()?.lexema === "="){
+            
+        }
+    }
     declaracion() {
         this.avanzar();
         const nombre = this.tokenActual()?.lexema;
@@ -513,7 +523,7 @@ class Traductor {
     }
     expresion() {
         let resultado = "";
-        while (this.tokenActual() && this.tokenActual().tipo !== "SYM") {
+        while (this.tokenActual() && this.tokenActual().tipo !== "SIMBOLO") {
             resultado += this.tokenActual().lexema + " ";
             this.avanzar();
         }
@@ -542,19 +552,22 @@ class Traductor {
 
         if (["INT", "FLOAT", "BOOLEAN"].includes(token.tipo)) {
             this.declaracion();
-        } else if (token.tipo === "IDENTIFICADOR") {
+        } else if (token.lexema === "CLASS") {
+            while (this.tokenActual()?.lexema !== "{") this.avanzar();
+            this.avanzar();
             this.asignacion();
         } else if (token.tipo === "IF") {
             this.ifStatement();
         } else if (token.tipo === "WHILE") {
             this.whileStatement();
-        } else if (token.tipo === "SYM" && token.lexema === "{") {
+        } else if (token.tipo === "SIMBOLO" && token.lexema === "{") {
             this.bloque();
         } else {
             this.avanzar(); // ignorar token no traducible
         }
     }
     traducir() {
+    
         while (this.index < this.tokens.length) {
             this.instruccion();
         }
