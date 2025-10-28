@@ -442,7 +442,7 @@ export class Parser {
         this.coincidir("PARENTESIS_ABRE");
 
         const tipo = this.tokenActual()?.tipo;
-        if (["INT", "FLOAT"].includes(tipo)) {
+        if (["INT", "DOUBLE"].includes(tipo)) {
             this.declaracion(); // traduce int i = 0;
         } else if (this.tokenActual()?.tipo === "IDENTIFICADOR") {
             this.asignacion(); // traduce i = 0;

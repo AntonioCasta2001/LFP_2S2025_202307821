@@ -13,9 +13,9 @@ let entrada = ` public class Clase{
             x = 46;
         }
         while(n==1){
-        
+            x=2;
         }
-        for(){
+        for(n==2){
         }
     }
 }
@@ -56,11 +56,14 @@ export class Traductor {
         }
 
         // Declaración con tipo: int x = 5;
-        if (["INT", "FLOAT", "BOOLEAN"].includes(token.tipo)) {
+        if (["INT", "BOOLEAN"].includes(token.tipo)) {
             this.declaracion();
             return;
         }
-
+        if (["DOUBLE", "FLOAT"].includes(token.tipo)) {
+            this.declaracionDouble();
+            return;
+        }
         // Asignación simple: x = 5;
         if (token.tipo === "IDENTIFICADOR" && this.tokens[this.index + 1]?.lexema === "=") {
             this.asignacion();
@@ -84,11 +87,27 @@ export class Traductor {
             this.bloque();
             return;
         }
+        if (token.tipo === "FOR") {
+            this.whileStatement();
+            return;
+        }
 
         // Si no coincide con nada, avanzar
         this.avanzar();
     }
+    declaracionDouble() {
+        this.avanzar(); // tipo
+        const nombre = this.tokenActual()?.lexema;
+        this.avanzar(); // identificador
+        let valor = "None";
+        if (this.tokenActual()?.lexema === "=") {
+            this.avanzar(); // =
+            valor = this.expresionDouble();
+        }
 
+        this.avanzar(); // ;
+        this.escribir(`${nombre} = ${valor}`);
+    }
     declaracion() {
         this.avanzar(); // tipo
         const nombre = this.tokenActual()?.lexema;
@@ -123,8 +142,16 @@ export class Traductor {
     }
     expresionCondicion() {
         let resultado = "";
-        while (this.tokenActual() && this.tokenActual().tipo !== "SIMBOLO" && this.tokenActual().lexema !== ";") {
+        while (this.tokenActual() && this.tokenActual().tipo !== "SIMBOLO" && this.tokenActual().lexema !== ")") {
             resultado += this.tokenActual().lexema + " ";
+            this.avanzar();
+        }
+        return resultado.trim();
+    }
+    expresionDouble(){
+        let resultado = "";
+        while (this.tokenActual() && this.tokenActual().tipo !== "SIMBOLO" && this.tokenActual().lexema !== ";") {
+            resultado += this.tokenActual().lexema + "";
             this.avanzar();
         }
         return resultado.trim();
@@ -132,13 +159,13 @@ export class Traductor {
     whileStatement() {
         this.avanzar(); // while
         this.avanzar(); // (
-        const condicion = this.expresion();
+        const condicion = this.expresionCondicion();
         this.avanzar(); // )
         this.escribir(`while ${condicion}:`);
         this.bloque();
     }
-    forStatement(){
-                // Traducir como while
+    forStatement() {
+        // Traducir como while
         this.escribir(`while ${condicion}:`);
         this.indentacion++;
         this.bloque(); // cuerpo del for
@@ -148,7 +175,7 @@ export class Traductor {
     ifStatement() {
         this.avanzar(); // if
         this.avanzar(); // (
-        const condicion = this.expresion();
+        const condicion = this.expresionCondicion();
         this.avanzar(); // )
         //this.avanzar(); // )
         if (this.tokenActual() && this.tokenActual().tipo !== "PARENTESIS_CIERRA") { }
@@ -186,37 +213,37 @@ const codigoPython = traductor.traducir();
 console.log("Código Python generado:\n", codigoPython);
 
 export function ejecutarTraduccion(codigoFuente) {
-  const analizador = new AnalizadorLexico();
-  analizador.analizar(codigoFuente);
+    const analizador = new AnalizadorLexico();
+    analizador.analizar(codigoFuente);
 
-  if (analizador.listaError.length > 0) {
+    if (analizador.listaError.length > 0) {
+        return {
+            erroresLexicos: analizador.listaError,
+            erroresSintacticos: [],
+            codigoPython: "",
+            tokens: analizador.listaTokens
+        };
+    }
+
+    const parser = new Parser(analizador.listaTokens);
+    const erroresSintacticos = parser.parse();
+
+    if (erroresSintacticos.length > 0) {
+        return {
+            erroresLexicos: [],
+            erroresSintacticos,
+            codigoPython: "",
+            tokens: analizador.listaTokens
+        };
+    }
+
+    const traductor = new Traductor(analizador.listaTokens);
+    const codigoPython = traductor.traducir();
+
     return {
-      erroresLexicos: analizador.listaError,
-      erroresSintacticos: [],
-      codigoPython: "",
-      tokens: analizador.listaTokens
+        erroresLexicos: [],
+        erroresSintacticos: [],
+        codigoPython,
+        tokens: analizador.listaTokens
     };
-  }
-
-  const parser = new Parser(analizador.listaTokens);
-  const erroresSintacticos = parser.parse();
-
-  if (erroresSintacticos.length > 0) {
-    return {
-      erroresLexicos: [],
-      erroresSintacticos,
-      codigoPython: "",
-      tokens: analizador.listaTokens
-    };
-  }
-
-  const traductor = new Traductor(analizador.listaTokens);
-  const codigoPython = traductor.traducir();
-
-  return {
-    erroresLexicos: [],
-    erroresSintacticos: [],
-    codigoPython,
-    tokens: analizador.listaTokens
-  };
 }

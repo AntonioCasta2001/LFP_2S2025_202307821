@@ -10,7 +10,7 @@ let entrada = ` public class Clase{
         double c = 46.2;
         double y = 54.4;
         char v = 'a';
-        if(n != 2){
+        if(n = 2){
             x = 46;
         }
         while(n==1){
@@ -70,15 +70,17 @@ export class Parser {
 
         if (["INT", "BOOLEAN", "CHAR"].includes(token.tipo)) {
             this.declaracion();
-        } else if (token.tipo === "DOUBLE"){
+        } else if (token.tipo === "DOUBLE") {
             this.declaracionBoolean();
         } else if (token.tipo === "IDENTIFICADOR") {
             this.asignacion();
+        } else if (token.tipo === "COMENTARIO") {
+            this.avanzar(); // ignorar comentario
         } else if (token.tipo === "IF") {
             this.ifStatement();
         } else if (token.tipo === "WHILE") {
             this.whileStatement();
-        } else if(token.tipo === "FOR"){
+        } else if (token.tipo === "FOR") {
             this.forStatement();
         } else if (token.tipo === "LLAVE_ABRE" && token.lexema === "{") {
             this.bloque();
@@ -98,7 +100,7 @@ export class Parser {
         }
         this.coincidir("P&C"); // ;
     }
-    declaracionBoolean(){
+    declaracionBoolean() {
         this.avanzar();
         if (!this.coincidir("IDENTIFICADOR")) return;
         if (this.tokenActual()?.lexema === "=") {
@@ -117,14 +119,14 @@ export class Parser {
     }
     expresion() {
         this.termino();
-        while (["+", "-", "*", "/","==", "!=", "<", ">", "<=", ">=", "++", "--"].includes(this.tokenActual()?.lexema)) {
+        while (["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "++", "--"].includes(this.tokenActual()?.lexema)) {
             this.avanzar();
             this.termino();
         }
     }
-    condicionFor(){
+    condicionFor() {
         const token = this.tokenActual();
-        if(this.coincidir("INT")){
+        if (this.coincidir("INT")) {
             this.avanzar();
             this.coincidir("IDENTIFICADOR");
             this.avanzar();
@@ -132,19 +134,19 @@ export class Parser {
             this.avanzar();
             this.coincidir("ENTERO");
             this.coincidir("P&C");
-            
+
         }
     }
-    condicion(){
+    condicion() {
         const token = this.tokenActual();
-        if(this.coincidir("IDENTIFICADOR")){
-            if(["==", "!=", "<", ">", "<=", ">="].includes(this.tokenActual()?.lexema)){
+        if (this.coincidir("IDENTIFICADOR")) {
+            if (["==", "!=", "<", ">", "<=", ">="].includes(this.tokenActual()?.lexema)) {
                 this.avanzar();
-                if(this.coincidir("ENTERO") || this.coincidir("CADENA") || this.coincidir("BOOLEAN")){
+                if (this.coincidir("ENTERO") || this.coincidir("CADENA") || this.coincidir("BOOLEAN") || this.coincidir("IDENTIFICADOR")) {
                     this.avanzar();
                 }
             }
-        } else{
+        } else {
             this.errors.push(`Condicion de if inválida en línea ${token?.linea}`);
             this.avanzar();
         }
@@ -165,14 +167,14 @@ export class Parser {
         this.instruccion(); // cuerpo
         this.coincidir("LLAVE_CIERRA");
     }
-    whileStatement(){
+    whileStatement() {
         this.avanzar();
         this.coincidir("PARENTESIS_ABRE"); // (
         this.condicion();
         this.instruccion(); // cuerpo
         this.coincidir("LLAVE_CIERRA");
     }
-    forStatement(){
+    forStatement() {
         this.avanzar();
         this.coincidir("PARENTESIS_ABRE"); // (
         this.condicionFor();
