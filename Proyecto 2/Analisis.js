@@ -62,7 +62,7 @@ export class AnalizadorLexico {
         return ops.includes(char);
     }
     esOperadorCompuesto(char) {
-        const ops2 = ["==", "!=", "<=", ">=", "++", "--"];
+        const ops2 = ["==", "!=", "<=", ">=", "++", "--", "//"];
         return ops2.includes(char);
     }
     esSimbolo(char) {
@@ -87,6 +87,17 @@ export class AnalizadorLexico {
             const char = entrada[index];
 
             if (estado === 0) {
+                if (char === '/' && entrada[index + 1] === '/') {
+                    let buffer = "";
+                    index += 2;
+                    columna += 2;
+                    while (index < entrada.length && entrada[index] !== '\n') {
+                        buffer += entrada[index];
+                        index++;
+                        columna++;
+                    } this.listaTokens.push(new Token("COMENTARIO", buffer.trim(), linea, columna));
+                    continue;
+                }
                 if (char === "{") {
                     columna += 1;
                     this.listaTokens.push(new Token("LLAVE_ABRE", char, linea, columna));
@@ -124,7 +135,7 @@ export class AnalizadorLexico {
                 } else if (char === ",") {
                     columna += 1;
                     this.listaTokens.push(new Token("SIMBOLO", char, linea, columna));
-                } else if (char === "."){
+                } else if (char === ".") {
                     columna += 1;
                     this.listaTokens.push(new Token("PUNTO", char, linea, columna));
                 } else if (this.esOperadorCompuesto(char) || this.operadores(char)) {
@@ -186,7 +197,7 @@ export class AnalizadorLexico {
                     linea += 1;
                     columna = 1;
                     estado = 0;
-                } else if(char === "'"){
+                } else if (char === "'") {
                     columna += 1;
                     buffer += "'";
                     this.listaTokens.push(new Token("CADENA", buffer, linea, columna));
@@ -277,10 +288,21 @@ export class AnalizadorLexico {
     }
 }
 
+let entrada = `
+public class  Calculadora {
+    public  static void main(String[] args) {
+        // Declaraciones de variables de tercer orden
+        int numero = 42;
+        double pi = 3.14;
+        char letra = 'A';
+        if(n > numero){
+        }
 
+    }
+}`
 const scanner = new AnalizadorLexico();
 
-let entrada = ` public class Clase{
+/*let entrada = ` public class Clase{
     public static void main(String[] args){
         int x = 2+2;
         int y = 4;
@@ -294,9 +316,13 @@ let entrada = ` public class Clase{
         while(n==1){
         
         }
+        for(){
+        }
     }
 }
 `;
+
+*/
 let analisis = scanner.analizar(entrada);
 
 scanner.imprimirTokens();
@@ -349,14 +375,18 @@ export class Parser {
 
         if (["INT", "BOOLEAN", "CHAR"].includes(token.tipo)) {
             this.declaracion();
-        } else if (token.tipo === "DOUBLE"){
+        } else if (token.tipo === "DOUBLE") {
             this.declaracionBoolean();
         } else if (token.tipo === "IDENTIFICADOR") {
             this.asignacion();
+        } else if (token.tipo === "COMENTARIO") {
+            this.avanzar(); // ignorar comentario
         } else if (token.tipo === "IF") {
             this.ifStatement();
         } else if (token.tipo === "WHILE") {
             this.whileStatement();
+        } else if (token.tipo === "FOR") {
+            this.forStatement();
         } else if (token.tipo === "LLAVE_ABRE" && token.lexema === "{") {
             this.bloque();
         } else if (token.tipo === "CENTINELA" && token.lexema === "#") {
@@ -375,7 +405,7 @@ export class Parser {
         }
         this.coincidir("P&C"); // ;
     }
-    declaracionBoolean(){
+    declaracionBoolean() {
         this.avanzar();
         if (!this.coincidir("IDENTIFICADOR")) return;
         if (this.tokenActual()?.lexema === "=") {
@@ -394,22 +424,34 @@ export class Parser {
     }
     expresion() {
         this.termino();
-        while (["+", "-", "*", "/","==", "!=", "<", ">", "<=", ">=", "++", "--"].includes(this.tokenActual()?.lexema)) {
+        while (["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "++", "--"].includes(this.tokenActual()?.lexema)) {
             this.avanzar();
             this.termino();
         }
     }
-    condicion(){
+    condicionFor() {
         const token = this.tokenActual();
-        if(this.coincidir("IDENTIFICADOR")){
-            //if(this.coincidir("OPC") || this.coincidir("OP")){
-            if(["==", "!=", "<", ">", "<=", ">="].includes(this.tokenActual()?.lexema)){
+        if (this.coincidir("INT")) {
+            this.avanzar();
+            this.coincidir("IDENTIFICADOR");
+            this.avanzar();
+            this.coincidir("OPC");
+            this.avanzar();
+            this.coincidir("ENTERO");
+            this.coincidir("P&C");
+
+        }
+    }
+    condicion() {
+        const token = this.tokenActual();
+        if (this.coincidir("IDENTIFICADOR")) {
+            if (["==", "!=", "<", ">", "<=", ">="].includes(this.tokenActual()?.lexema)) {
                 this.avanzar();
-                if(this.coincidir("ENTERO") || this.coincidir("CADENA") || this.coincidir("BOOLEAN")){
+                if (this.coincidir("ENTERO") || this.coincidir("CADENA") || this.coincidir("BOOLEAN") || this.coincidir("IDENTIFICADOR")) {
                     this.avanzar();
                 }
             }
-        } else{
+        } else {
             this.errors.push(`Condicion de if inválida en línea ${token?.linea}`);
             this.avanzar();
         }
@@ -430,10 +472,17 @@ export class Parser {
         this.instruccion(); // cuerpo
         this.coincidir("LLAVE_CIERRA");
     }
-    whileStatement(){
+    whileStatement() {
         this.avanzar();
         this.coincidir("PARENTESIS_ABRE"); // (
         this.condicion();
+        this.instruccion(); // cuerpo
+        this.coincidir("LLAVE_CIERRA");
+    }
+    forStatement() {
+        this.avanzar();
+        this.coincidir("PARENTESIS_ABRE"); // (
+        this.condicionFor();
         this.instruccion(); // cuerpo
         this.coincidir("LLAVE_CIERRA");
     }
@@ -488,7 +537,7 @@ if (analizador.listaError.length === 0) {
 }
 
 /* traductor */
-
+/*
 export class Traductor {
     constructor(tokens) {
         this.tokens = tokens;
@@ -593,7 +642,7 @@ export class Traductor {
     }
 }
 
-
+/*
 const traductor = new Traductor(analizador.listaTokens);
 const codigoPython = traductor.traducir();
-console.log("Código Python generado:\n", codigoPython);
+console.log("Código Python generado:\n", codigoPython);*/

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Traductor Java → Python</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    header { background: #333; color: white; padding: 10px; }
+    nav { background: #444; color: white; padding: 10px; display: flex; gap: 20px; flex-wrap: wrap; }
+    nav button { background: #666; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+    nav button:hover { background: #888; }
+    main { display: flex; height: calc(100vh - 100px); }
+    textarea { width: 50%; height: 100%; padding: 10px; border: none; resize: none; font-family: monospace; font-size: 14px; }
+    #editor { background: #f0f0f0; }
+    #output { background: #e0ffe0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Traductor Java → Python</h1>
+  </header>
+
+  <nav>
+    <div>
+      <strong>ARCHIVO:</strong>
+      <button onclick="nuevo()">Nuevo</button>
+      <input type="file" accept=".java" onchange="abrirArchivo(event)">
+      <button onclick="guardarJava()">Guardar Java</button>
+      <button onclick="guardarPython()">Guardar Python</button>
+    </div>
+    <div>
+      <strong>TRADUCIR:</strong>
+      <button onclick="traducir()">Generar Traducción</button>
+      <button onclick="verTokens()">Ver Tokens</button>
+    </div>
+  </nav>
+
+  <main>
+    <textarea id="editor" placeholder="Escribe o carga código Java aquí..."></textarea>
+    <textarea id="output" placeholder="Aquí se mostrará el código Python traducido..." readonly></textarea>
+  </main>
+
+  <script type="module">
+    import { AnalizadorLexico } from '../Analisis.js';
+    import { Parser } from '../parser.js';
+    import { Traductor } from '../translate.js';
+
+    function nuevo() {
+      document.getElementById('editor').value = '';
+      document.getElementById('output').value = '';
+    }
+
+    function abrirArchivo(event) {
+      const file = event.target.files[0];
+      if (file && file.name.endsWith('.java')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('editor').value = e.target.result;
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Por favor selecciona un archivo .java válido.');
+      }
+    }
+
+    function guardarJava() {
+      const contenido = document.getElementById('editor').value;
+      descargarArchivo(contenido, 'codigo.java');
+    }
+
+    function guardarPython() {
+      const contenido = document.getElementById('output').value;
+      if (contenido.trim()) {
+        descargarArchivo(contenido, 'codigo.py');
+      } else {
+        alert('No hay traducción disponible para guardar.');
+      }
+    }
+
+    function descargarArchivo(contenido, nombre) {
+      const blob = new Blob([contenido], { type: 'text/plain' });
+      const enlace = document.createElement('a');
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = nombre;
+      enlace.click();
+    }
+
+    function traducir() {
+      const codigoJava = document.getElementById('editor').value;
+
+      const escaner = new AnalizadorLexico();
+      escaner.analizar(codigoJava);
+
+      if (escaner.listaError.length > 0) {
+        alert("Errores léxicos:\n" + escaner.listaError.map(e =>
+          `${e.tipo} → '${e.lexema}' en línea ${e.linea}, columna ${e.columna}`
+        ).join("\n"));
+        return;
+      }
+
+      const parser = new Parser(escaner.listaTokens);
+      const erroresSintacticos = parser.parse();
+
+      if (erroresSintacticos.length > 0) {
+        alert("Errores sintácticos:\n" + erroresSintacticos.join("\n"));
+        return;
+      }
+
+      const traductor = new Traductor(escaner.listaTokens);
+      const codigoPython = traductor.traducir();
+
+      document.getElementById('output').value = codigoPython;
+    }
+
+    function verTokens() {
+      const codigoJava = document.getElementById('editor').value;
+      const escaner = new AnalizadorLexico();
+      escaner.analizar(codigoJava);
+
+      const ventana = window.open('', '_blank');
+      ventana.document.write('<h2>Reporte de Tokens</h2><table border="1" cellpadding="5"><tr><th>#</th><th>Tipo</th><th>Lexema</th><th>Línea</th><th>Columna</th></tr>');
+
+      escaner.listaTokens.forEach((t, i) => {
+        ventana.document.write(`<tr><td>${i + 1}</td><td>${t.tipo}</td><td>${t.lexema}</td><td>${t.linea}</td><td>${t.columna}</td></tr>`);
+      });
+
+      ventana.document.write('</table>');
+    }
+
+    // Exponer funciones si se desea usar desde otros scripts
+    window.nuevo = nuevo;
+    window.abrirArchivo = abrirArchivo;
+    window.guardarJava = guardarJava;
+    window.guardarPython = guardarPython;
+    window.traducir = traducir;
+    window.verTokens = verTokens;
+  </script>
+</body>
+</html>
