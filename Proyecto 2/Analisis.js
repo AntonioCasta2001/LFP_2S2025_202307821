@@ -137,7 +137,7 @@ export class AnalizadorLexico {
                         columna++;
                     }
                 }
-                else if (char === '"') {
+                else if (char === '"' || char === "'") {
                     columna += 1;
                     buffer = '"';
                     estado = 1;
@@ -185,6 +185,12 @@ export class AnalizadorLexico {
                     buffer = "";
                     linea += 1;
                     columna = 1;
+                    estado = 0;
+                } else if(char === "'"){
+                    columna += 1;
+                    buffer += "'";
+                    this.listaTokens.push(new Token("CADENA", buffer, linea, columna));
+                    buffer = "";
                     estado = 0;
                 } else {
                     columna += 1;
@@ -281,10 +287,10 @@ let entrada = ` public class Clase{
         char z = "David";
         double c = 46.2;
         double y = 54.4;
-        if(n >2){
+        char v = 'a';
+        if(n != 2){
             x = 46;
         }
-        @
         while(n==1){
         
         }
@@ -483,7 +489,7 @@ if (analizador.listaError.length === 0) {
 
 /* traductor */
 
-class Traductor {
+export class Traductor {
     constructor(tokens) {
         this.tokens = tokens;
         this.index = 0;
@@ -588,9 +594,6 @@ class Traductor {
 }
 
 
-class variables {
-
-}
 const traductor = new Traductor(analizador.listaTokens);
 const codigoPython = traductor.traducir();
 console.log("Código Python generado:\n", codigoPython);
